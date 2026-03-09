@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CVNP2646 Mission Launchpad</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="landing.css">
+</head>
+<body>
+  <div class="background-grid" aria-hidden="true"></div>
+  <div class="background-glow" aria-hidden="true"></div>
+
+  <main class="launchpad">
+    <header class="hero">
+      <p class="eyebrow">CVNP2646 // STUDENT PORTAL</p>
+      <h1>Mission Launchpad</h1>
+      <p class="hero-copy">
+        Choose your week, open your operation, and continue your SOC analyst training track.
+      </p>
+      <a class="hero-cta" href="Week7/index.html">Begin at Week 7</a>
+    </header>
+
+    <section aria-labelledby="week-links-title" class="week-section">
+      <div class="week-section-header">
+        <h2 id="week-links-title">Weekly Operations</h2>
+        <p>Direct access to every active week.</p>
+      </div>
+      <div id="week-grid" class="week-grid" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <script src="landing.js"></script>
+</body>
+</html>

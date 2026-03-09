@@ -1,0 +1,225 @@
+:root {
+  --bg-0: #05070d;
+  --bg-1: #0a1224;
+  --bg-2: #121f37;
+  --line: rgba(82, 132, 196, 0.17);
+  --text: #ecf4ff;
+  --muted: #9bb1cc;
+  --accent: #4bc0ff;
+  --accent-strong: #22e39a;
+  --panel: rgba(10, 18, 36, 0.72);
+  --panel-border: rgba(118, 180, 255, 0.26);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: radial-gradient(1200px 600px at 85% -10%, rgba(33, 128, 255, 0.25), transparent 60%),
+    radial-gradient(900px 450px at 15% 120%, rgba(33, 227, 154, 0.15), transparent 65%),
+    linear-gradient(160deg, var(--bg-0), var(--bg-1) 45%, var(--bg-2));
+  color: var(--text);
+  font-family: "Sora", sans-serif;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.background-grid {
+  position: fixed;
+  inset: 0;
+  background-image: linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(circle at center, black 45%, transparent 100%);
+  pointer-events: none;
+}
+
+.background-glow {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 20% 15%, rgba(75, 192, 255, 0.18), transparent 38%),
+    radial-gradient(circle at 90% 80%, rgba(34, 227, 154, 0.16), transparent 35%);
+  pointer-events: none;
+}
+
+.launchpad {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 3rem 1.25rem 4rem;
+  position: relative;
+  z-index: 1;
+}
+
+.hero {
+  background: linear-gradient(130deg, rgba(11, 24, 52, 0.72), rgba(8, 16, 34, 0.78));
+  border: 1px solid var(--panel-border);
+  border-radius: 20px;
+  padding: 2.25rem;
+  box-shadow: 0 20px 45px rgba(5, 10, 24, 0.5);
+}
+
+.eyebrow {
+  font-family: "IBM Plex Mono", monospace;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+  font-size: 0.85rem;
+  margin: 0 0 1rem;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 5vw, 3.2rem);
+  letter-spacing: -0.02em;
+}
+
+.hero-copy {
+  margin: 1rem 0 1.6rem;
+  color: var(--muted);
+  max-width: 60ch;
+  line-height: 1.55;
+}
+
+.hero-cta {
+  display: inline-block;
+  background: linear-gradient(120deg, var(--accent), var(--accent-strong));
+  color: #041121;
+  font-weight: 700;
+  text-decoration: none;
+  padding: 0.8rem 1.1rem;
+  border-radius: 12px;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.hero-cta:hover,
+.hero-cta:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(34, 227, 154, 0.28);
+}
+
+.week-section {
+  margin-top: 2rem;
+}
+
+.week-section-header h2 {
+  margin: 0;
+  font-size: clamp(1.3rem, 3vw, 2rem);
+}
+
+.week-section-header p {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+}
+
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.week-card {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  padding: 1rem;
+  backdrop-filter: blur(6px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  position: relative;
+  overflow: hidden;
+  animation: card-enter 420ms ease both;
+  animation-delay: var(--delay, 0ms);
+}
+
+.week-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, var(--tone), transparent 85%);
+}
+
+.week-number {
+  font-family: "IBM Plex Mono", monospace;
+  color: var(--tone);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  margin: 0;
+}
+
+.week-title {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.week-role {
+  margin: 0;
+  font-family: "IBM Plex Mono", monospace;
+  color: #c3d8ee;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+}
+
+.week-mission {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  flex: 1;
+}
+
+.week-link {
+  text-decoration: none;
+  color: #041121;
+  background: var(--tone);
+  align-self: flex-start;
+  padding: 0.45rem 0.7rem;
+  border-radius: 10px;
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+
+.week-link:hover,
+.week-link:focus-visible {
+  filter: brightness(1.08);
+}
+
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 640px) {
+  .launchpad {
+    padding-top: 1.5rem;
+  }
+
+  .hero {
+    padding: 1.4rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
