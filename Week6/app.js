@@ -227,20 +227,31 @@ MISSION_RENDERERS[0] = function() {
   <div class="panel">
     <div class="panel-accent"></div>
     <div class="panel-title">Week 6: Authentication Log Analysis</div>
-    <p>This week you build a log scanner that detects brute force attacks. auth.log is the primary intelligence source on any Linux system. Every failed login is a data point. Counter from collections turns hundreds of log lines into a ranked list of threats in one function call.</p>
-    <p style="margin-top:12px;">By the end of this week you will have a script that parses auth.log, uses Counter to find the top offending IPs, flags any IP with 3 or more failures, and prints a threat report.</p>
+    <p>Every Linux system running SSH is being probed. Right now. Automated scanners sweep the internet looking for open port 22, then hammer it with credential lists — common usernames like <code>root</code>, <code>admin</code>, <code>ubuntu</code> paired with thousands of common passwords. This happens so frequently that a freshly deployed server with SSH exposed to the internet will typically see its first failed login attempt within minutes.</p>
+    <p style="margin-top:12px;">The defense starts with visibility. Every one of those attempts is recorded in <code>/var/log/auth.log</code> (Debian/Ubuntu) or <code>/var/log/secure</code> (RHEL/CentOS). The log is verbose — a busy server generates thousands of lines per day — but the signal is there. Your job this week is to extract it.</p>
+    <p style="margin-top:12px;">You will build a Python script that reads auth.log line by line, identifies authentication events, extracts the source IP and username from each failure, counts them with <code>collections.Counter</code>, and flags any IP with 3 or more failures as a brute force candidate. By the end of the week you will have a real threat detection tool, not a toy example.</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-accent blue"></div>
+    <div class="panel-title blue">The Three Building Blocks</div>
+    <p>This week's tool has three independent components that slot together. Review each card to understand what it contributes before moving to the detailed missions.</p>
+    <p style="color:var(--text-dim); font-size:0.85em; margin-top:8px;">Click each card to mark it reviewed. All three must be reviewed before the orientation check unlocks.</p>
     <div class="concept-grid">
       <div class="concept-card" id="card-ORIENT-0" onclick="visitCard('ORIENT', 0, 3)">
         <h3>Auth Logs</h3>
-        <p>System authentication records — timestamp, hostname, service, user, IP, status (<code>Accepted</code>/<code>Failed</code>)</p>
+        <p>The raw material. <code>/var/log/auth.log</code> records every authentication event on the system — SSH logins, sudo commands, PAM interactions. Each line follows a consistent format: timestamp, hostname, service (usually <code>sshd</code>), and a message that includes the event type, username, source IP, and port.</p>
+        <p style="margin-top:8px; color:var(--text-dim); font-size:0.85em;">Key events: <code>Failed password</code>, <code>Accepted password</code>, <code>Invalid user</code></p>
       </div>
       <div class="concept-card" id="card-ORIENT-1" onclick="visitCard('ORIENT', 1, 3)">
         <h3>Counter</h3>
-        <p><code>collections.Counter</code> — frequency analysis in one line. <code>Counter(items)</code> builds a dict of counts automatically</p>
+        <p><code>collections.Counter</code> is the right tool for this problem. Pass it any iterable — a list of IP addresses, usernames, (ip, user) tuples — and it returns a dict subclass with counts, automatically sorted. <code>.most_common(n)</code> gives you the top offenders immediately.</p>
+        <p style="margin-top:8px; color:var(--text-dim); font-size:0.85em;">No manual loop, no defaultdict, no sorting — one call does everything.</p>
       </div>
       <div class="concept-card" id="card-ORIENT-2" onclick="visitCard('ORIENT', 2, 3)">
         <h3>Brute Force Detection</h3>
-        <p>3+ failed logins from same IP = suspicious. Track <code>(ip, user)</code> pairs to find targeted attacks</p>
+        <p>A brute force attack generates many failures in a short window from the same source. The simplest effective heuristic: flag any IP with 3 or more failed login attempts. You can tune the threshold — 3 is low enough to catch real attacks without ignoring them, but your production threshold might be higher depending on the environment.</p>
+        <p style="margin-top:8px; color:var(--text-dim); font-size:0.85em;">Also useful: track <code>(ip, user)</code> pairs to identify credential stuffing against specific accounts.</p>
       </div>
     </div>
     <div id="card-ORIENT-status" style="color:var(--text-dim); font-size:0.8em; margin-top:8px; letter-spacing:1px;">0 / 3 components reviewed</div>
@@ -295,8 +306,9 @@ MISSION_RENDERERS[1] = function() {
   <div class="panel">
     <div class="panel-accent blue"></div>
     <div class="panel-title blue">Reading Authentication Logs</div>
-    <p>Before you can parse a log, you must understand its structure. Every field has a position and a meaning. Review all four cards to unlock the question.</p>
-    <p style="color:var(--text-dim); font-size:0.85em; margin-top:8px;">Click each card to mark it reviewed. All four must be reviewed before the question unlocks.</p>
+    <p>The <code>sshd</code> daemon writes to auth.log using the syslog format — a standard that has been consistent for decades. This consistency is what makes machine parsing possible. If the format were arbitrary, each log line would need custom logic. Because syslog is standardized, you can write one parser and process millions of lines reliably.</p>
+    <p style="margin-top:12px;">The format looks cluttered at first glance, but every field is there for a reason. The timestamp tells you when. The hostname tells you which machine (critical in distributed environments). The service and PID tell you which process generated the event. And the message — which varies by event type — contains the actual intelligence: who tried to log in, from where, and whether they succeeded.</p>
+    <p style="margin-top:12px; color:var(--text-dim); font-size:0.85em;">Click each card to mark it reviewed. All four must be reviewed before the question unlocks.</p>
   </div>
 
   <div class="panel">
@@ -307,27 +319,32 @@ MISSION_RENDERERS[1] = function() {
       <div class="concept-card" id="card-m1-0" onclick="visitCard('m1', 0, 4)">
         <h3>Log Line Structure</h3>
         <div class="code-block"><pre><code>Jan 15 03:47:22 server sshd[1234]: Failed password for admin from 192.168.1.100 port 54321 ssh2</code></pre></div>
+        <p style="margin-top:10px; font-size:0.85em; color:var(--text-dim);">Breaking it down: <code>Jan 15 03:47:22</code> is the timestamp, <code>server</code> is the hostname, <code>sshd[1234]</code> is the service and process ID. Everything after the colon is the message. Notice the time — 3:47 AM is a classic brute force window when admins aren't watching.</p>
       </div>
 
       <div class="concept-card" id="card-m1-1" onclick="visitCard('m1', 1, 4)">
         <h3>Key Fields</h3>
-        <p><strong>timestamp</strong> / <strong>hostname</strong> / <strong>service</strong> / <strong>message</strong></p>
-        <p style="font-size:0.85em; color:var(--text-dim);">The message field contains the event type, username, source IP, and port.</p>
+        <p><strong>Timestamp</strong> — when the event occurred. Useful for rate analysis (events per minute).</p>
+        <p style="margin-top:6px;"><strong>Hostname</strong> — which server. In cloud environments with many hosts, this identifies the target.</p>
+        <p style="margin-top:6px;"><strong>Service</strong> — <code>sshd</code> for SSH, <code>sudo</code> for privilege escalation, <code>cron</code> for scheduled tasks.</p>
+        <p style="margin-top:6px;"><strong>Message</strong> — the structured intelligence: event type keyword, username, source IP, port number.</p>
       </div>
 
       <div class="concept-card" id="card-m1-2" onclick="visitCard('m1', 2, 4)">
         <h3>Accepted vs Failed</h3>
-        <div class="code-block"><pre><code><span class="cm"># Successful</span>
+        <div class="code-block"><pre><code><span class="cm"># Successful login — the IP got in</span>
 ... Accepted password for alice from 10.0.0.5 ...
 
-<span class="cm"># Failed</span>
+<span class="cm"># Failed login — credential rejected</span>
 ... Failed password for root from 203.0.113.5 ...</code></pre></div>
+        <p style="margin-top:10px; font-size:0.85em; color:var(--text-dim);">Both lines have the same structure after the event keyword: <code>for [user] from [ip] port [port]</code>. That consistency lets you use the same extraction logic for both event types.</p>
       </div>
 
       <div class="concept-card" id="card-m1-3" onclick="visitCard('m1', 3, 4)">
         <h3>Invalid User</h3>
         <div class="code-block"><pre><code>... Invalid user hacker from 198.51.100.1 port 12345 ssh2
-<span class="cm"># Also triggers authentication failure</span></code></pre></div>
+<span class="cm"># Username doesn't exist on this system</span></code></pre></div>
+        <p style="margin-top:10px; font-size:0.85em; color:var(--text-dim);"><code>Invalid user</code> events are distinct from <code>Failed password</code> — the username doesn't exist at all rather than the password being wrong. This is a strong indicator of automated scanning with username wordlists. Notice the structure is slightly different: <code>Invalid user [user] from [ip]</code> — <code>user</code> comes after <code>user</code>, not after <code>for</code>. Your parser needs to handle this edge case.</p>
       </div>
 
     </div>
@@ -360,8 +377,10 @@ MISSION_RENDERERS[2] = function() {
   <div class="panel">
     <div class="panel-accent blue"></div>
     <div class="panel-title blue">parse_log_line(): The Core Function</div>
-    <p>Your entire log analyzer rests on one function: <code>parse_log_line()</code>. It takes a raw string and returns a dict with the event type, IP, and username — or <code>None</code> if the line is not an auth event. Review all four cards then answer all four questions.</p>
-    <p style="color:var(--text-dim); font-size:0.85em; margin-top:8px;">Click each card to mark it reviewed. All four must be reviewed before the questions unlock.</p>
+    <p>A log parser is fundamentally a translation layer. Raw text goes in, structured data comes out. <code>parse_log_line()</code> is the center of gravity for your entire analyzer — every downstream operation (counting, filtering, reporting) depends on getting clean, consistent dicts from this function.</p>
+    <p style="margin-top:12px;">The design principle here is <strong>separation of concerns</strong>. This function does exactly one thing: takes a single raw string, decides if it's an auth event, and if so, extracts the structured fields. It knows nothing about files, loops, or output. That makes it easy to test in isolation — you can call it with a string and immediately verify the result without reading any files.</p>
+    <p style="margin-top:12px;">Returning <code>None</code> for non-auth lines is an intentional design choice. auth.log is noisy — <code>sshd</code> logs key exchange details, PAM module status, session open/close events, and other housekeeping entries alongside the actual authentication events. Most lines are not the events you care about. Returning <code>None</code> lets the caller filter cleanly with <code>if result:</code> in a single line.</p>
+    <p style="margin-top:12px; color:var(--text-dim); font-size:0.85em;">Click each card to mark it reviewed. All four must be reviewed before the questions unlock.</p>
   </div>
 
   <div class="panel">
@@ -374,6 +393,7 @@ MISSION_RENDERERS[2] = function() {
         <div class="code-block"><pre><code><span class="kw">def</span> <span class="fn">parse_log_line</span>(line):
     <span class="str">"""Parse one auth log line.
     Returns dict or None if not auth event."""</span></code></pre></div>
+        <p style="margin-top:10px; font-size:0.85em; color:var(--text-dim);">The docstring is the contract: one string in, one dict or None out. Any caller reading this signature knows exactly what to expect. The function is also <em>pure</em> — given the same line, it always returns the same result. No global state, no file I/O, no side effects.</p>
       </div>
 
       <div class="concept-card" id="card-m2-1" onclick="visitCard('m2', 1, 4)">
@@ -384,21 +404,25 @@ MISSION_RENDERERS[2] = function() {
     event_type = <span class="str">'accepted'</span>
 <span class="kw">else</span>:
     <span class="kw">return</span> <span class="kw">None</span></code></pre></div>
+        <p style="margin-top:10px; font-size:0.85em; color:var(--text-dim);">The <code>in</code> operator checks for substring presence — reliable because sshd's message format for these events is consistent across versions and distributions. The early return on <code>else</code> is the "return early" pattern: bail out as soon as you know the line isn't useful, rather than nesting the rest of the logic inside an <code>if</code> block.</p>
       </div>
 
       <div class="concept-card" id="card-m2-2" onclick="visitCard('m2', 2, 4)">
         <h3>Extract IP with split()</h3>
-        <div class="code-block"><pre><code><span class="cm"># 'from 192.168.1.100 port'</span>
+        <div class="code-block"><pre><code><span class="cm"># Line: "... Failed password for admin from 192.168.1.100 port 54321 ssh2"</span>
 parts = line.<span class="fn">split</span>()
 from_idx = parts.<span class="fn">index</span>(<span class="str">'from'</span>)
 ip = parts[from_idx + <span class="num">1</span>]</code></pre></div>
+        <p style="margin-top:10px; font-size:0.85em; color:var(--text-dim);"><code>split()</code> with no argument splits on any whitespace and removes empty strings — robust against extra spaces. <code>.index('from')</code> finds the keyword's position in the word list, then <code>+ 1</code> gets the next word (the IP). This is more reliable than hardcoded field indices because earlier fields (like the PID) can vary in length.</p>
       </div>
 
       <div class="concept-card" id="card-m2-3" onclick="visitCard('m2', 3, 4)">
         <h3>Extract username</h3>
-        <div class="code-block"><pre><code>for_idx = parts.<span class="fn">index</span>(<span class="str">'for'</span>)
+        <div class="code-block"><pre><code><span class="cm"># "... Failed password for admin from ..."</span>
+for_idx = parts.<span class="fn">index</span>(<span class="str">'for'</span>)
 user = parts[for_idx + <span class="num">1</span>]
 <span class="kw">return</span> {<span class="str">'type'</span>: event_type, <span class="str">'ip'</span>: ip, <span class="str">'user'</span>: user}</code></pre></div>
+        <p style="margin-top:10px; font-size:0.85em; color:var(--text-dim);">Same anchor-word technique: find <code>'for'</code>, take the next word. The returned dict uses consistent key names — <code>'type'</code>, <code>'ip'</code>, <code>'user'</code> — so every caller works with the same interface regardless of which event type was parsed. Important edge case: <code>Invalid user</code> lines use <code>user</code> instead of <code>for</code> as the anchor — you'll need to handle that in a complete implementation.</p>
       </div>
 
     </div>
@@ -463,8 +487,10 @@ MISSION_RENDERERS[3] = function() {
   <div class="panel">
     <div class="panel-accent blue"></div>
     <div class="panel-title blue">collections.Counter: Frequency Analysis</div>
-    <p><code>Counter</code> is the fastest path from a list of values to a ranked frequency table. One line turns a list of IPs into a sorted count of offenders. Review all four cards then answer the question.</p>
-    <p style="color:var(--text-dim); font-size:0.85em; margin-top:8px;">Click each card to mark it reviewed. All four must be reviewed before the question unlocks.</p>
+    <p>Frequency analysis is one of the most useful operations in security work. Given a stream of events, which sources appear most often? Which accounts are being targeted? Which ports are being probed? The answer is always the same operation: count occurrences and sort by frequency.</p>
+    <p style="margin-top:12px;"><code>collections.Counter</code> exists specifically for this. It's a dict subclass — you can use it anywhere you'd use a regular dict — but it comes pre-loaded with counting logic. Pass it any iterable and it builds a frequency map automatically. No manual initialization, no <code>if key in d: d[key] += 1 else: d[key] = 1</code>. Just <code>Counter(iterable)</code>.</p>
+    <p style="margin-top:12px;">The most powerful feature is <code>.most_common(n)</code>, which returns the top n items sorted by count — exactly the ranked threat list you need. Without Counter, you'd need to sort by value manually: <code>sorted(d.items(), key=lambda x: x[1], reverse=True)</code>. Counter makes it one method call.</p>
+    <p style="margin-top:12px; color:var(--text-dim); font-size:0.85em;">Click each card to mark it reviewed. All four must be reviewed before the question unlocks.</p>
   </div>
 
   <div class="panel">
@@ -474,17 +500,23 @@ MISSION_RENDERERS[3] = function() {
 
       <div class="concept-card" id="card-m3-0" onclick="visitCard('m3', 0, 4)">
         <h3>Counter basics</h3>
-        <div class="code-block"><pre><code><span class="kw">from</span> collections <span class="kw">import</span> <span class="tp">Counter</span>
+        <div class="code-block"><pre><code><span class="kw">from</span> collections <span class="kw">import</span> Counter
 fails = [<span class="str">'192.168.1.1'</span>, <span class="str">'10.0.0.1'</span>, <span class="str">'192.168.1.1'</span>, <span class="str">'192.168.1.1'</span>]
-c = <span class="tp">Counter</span>(fails)
+c = Counter(fails)
 <span class="fn">print</span>(c)  <span class="cm"># Counter({'192.168.1.1': 3, '10.0.0.1': 1})</span></code></pre></div>
+        <p style="margin-top:10px; font-size:0.85em; color:var(--text-dim);">Counter accepts any iterable — lists, generators, file lines, whatever. It internally iterates once and builds the frequency map in O(n) time. Accessing a missing key returns 0 rather than raising a KeyError, which makes threshold checks like <code>c[ip] &gt;= 3</code> always safe.</p>
       </div>
 
       <div class="concept-card" id="card-m3-1" onclick="visitCard('m3', 1, 4)">
         <h3>most_common()</h3>
-        <div class="code-block"><pre><code><span class="cm"># Top 3 offenders</span>
+        <div class="code-block"><pre><code><span class="cm"># Top 3 offending IPs</span>
 c.<span class="fn">most_common</span>(<span class="num">3</span>)
-<span class="cm"># [('192.168.1.1', 3), ('10.0.0.1', 1)]</span></code></pre></div>
+<span class="cm"># [('192.168.1.1', 3), ('10.0.0.1', 1)]</span>
+
+<span class="cm"># All items sorted by frequency</span>
+c.<span class="fn">most_common</span>()
+<span class="cm"># Same list, longest first</span></code></pre></div>
+        <p style="margin-top:10px; font-size:0.85em; color:var(--text-dim);">The return value is always a <strong>list of tuples</strong>: <code>[(item, count), ...]</code>. This is important — not a dict, not a single tuple. You iterate over it with <code>for ip, count in c.most_common(10):</code>. Calling with no argument returns all items sorted, which is useful for writing full reports.</p>
       </div>
 
       <div class="concept-card" id="card-m3-2" onclick="visitCard('m3', 2, 4)">
@@ -494,15 +526,25 @@ c.<span class="fn">most_common</span>(<span class="num">3</span>)
     result = <span class="fn">parse_log_line</span>(line)
     <span class="kw">if</span> result <span class="kw">and</span> result[<span class="str">'type'</span>] == <span class="str">'failed'</span>:
         failed_ips.<span class="fn">append</span>(result[<span class="str">'ip'</span>])
-ip_counts = <span class="tp">Counter</span>(failed_ips)</code></pre></div>
+ip_counts = Counter(failed_ips)
+
+<span class="cm"># Flag any IP with 3+ failures</span>
+<span class="kw">for</span> ip, count <span class="kw">in</span> ip_counts.<span class="fn">most_common</span>():
+    <span class="kw">if</span> count >= <span class="num">3</span>:
+        <span class="fn">print</span>(<span class="str">f"ALERT: </span>{ip}<span class="str"> — </span>{count}<span class="str"> failures"</span>)</code></pre></div>
+        <p style="margin-top:10px; font-size:0.85em; color:var(--text-dim);">The pattern: collect values into a list, then pass the list to Counter once. The two-step approach (collect then count) is clearer than updating a Counter inside the loop, though both work. Notice <code>if result and</code> — the truthiness check on <code>result</code> handles None returns from the parser without an extra None check.</p>
       </div>
 
       <div class="concept-card" id="card-m3-3" onclick="visitCard('m3', 3, 4)">
         <h3>Multi-dimensional analysis</h3>
-        <div class="code-block"><pre><code><span class="cm"># Track (ip, user) pairs</span>
+        <div class="code-block"><pre><code><span class="cm"># Track (ip, user) pairs — finds credential stuffing</span>
 failed_pairs = [(r[<span class="str">'ip'</span>], r[<span class="str">'user'</span>]) <span class="kw">for</span> r <span class="kw">in</span> results
                 <span class="kw">if</span> r <span class="kw">and</span> r[<span class="str">'type'</span>] == <span class="str">'failed'</span>]
-pair_counts = <span class="tp">Counter</span>(failed_pairs)</code></pre></div>
+pair_counts = Counter(failed_pairs)
+
+<span class="cm"># Top pair: ('198.51.100.1', 'root') with 89 hits</span>
+<span class="cm"># Means: one IP repeatedly targeting one account</span></code></pre></div>
+        <p style="margin-top:10px; font-size:0.85em; color:var(--text-dim);">Tuples are hashable, so Counter can count them just like strings. This is more specific than IP-only analysis: an IP with 20 failures spread across 20 different usernames is a wordlist scan, while an IP with 20 failures all targeting <code>root</code> is a targeted credential attack. Different threat, different response.</p>
       </div>
 
     </div>
@@ -602,7 +644,11 @@ MISSION_RENDERERS[4] = function() {
   <div class="panel">
     <div class="panel-accent red"></div>
     <div class="panel-title red">Brute Force Simulator — Attack Detection</div>
-    <p>Three attack scenarios. Each has a different signature in the log data. Run all three to understand what normal activity, a credential spray, and a targeted attack look like in Counter output.</p>
+    <p>Not all failed logins look the same in Counter output. The distribution of failures across IPs is the signature that tells you what kind of attack you're dealing with — or whether you're looking at normal noise.</p>
+    <p style="margin-top:12px;"><strong>Low activity</strong> is your baseline. Every server sees occasional failed logins — a user who mistyped their password, an old client with a stale key, an admin who fat-fingered the username. A few failures spread across a few IPs with a low failure rate (under 10%) is normal. Your tool should not alert on this.</p>
+    <p style="margin-top:12px;"><strong>Credential spray</strong> is what automated scanners look like. A botnet or script hits port 22, tries a wordlist of passwords against <code>root</code>, <code>admin</code>, <code>ubuntu</code>, and hundreds of other common usernames. The failure rate goes through the roof — 90%+ of login attempts fail. Multiple source IPs each generating hundreds of failures. Counter immediately surfaces these as the top offenders.</p>
+    <p style="margin-top:12px;"><strong>Targeted attack</strong> is more subtle and more dangerous. A single IP, moderate failure count, all targeting one specific account. This suggests the attacker knows the username exists — maybe from OSINT, a data breach, or earlier reconnaissance. The failure rate is high but the total volume is lower, which can make it easy to miss without per-user analysis.</p>
+    <p style="margin-top:12px; color:var(--text-dim); font-size:0.85em;">Run all three scenarios to see how Counter output differs across attack types. The numbers in the simulator are realistic — real attacker tools generate these volumes.</p>
   </div>
 
   <div class="panel">
@@ -694,7 +740,11 @@ MISSION_RENDERERS[5] = function() {
   <div class="panel">
     <div class="panel-accent blue"></div>
     <div class="panel-title blue">Detection Simulator — Full Log Analyzer Pipeline</div>
-    <p>Three phases of a complete log analyzer: parse the raw log, analyze with Counter, generate the threat report. Run all three phases in order to see how the tool flows from raw data to actionable intelligence.</p>
+    <p>A complete security tool is a pipeline: raw data goes in one end, actionable intelligence comes out the other. Each stage has a single responsibility and hands its output to the next. This is the architecture your Week 6 script follows.</p>
+    <p style="margin-top:12px;"><strong>Phase 1 — Parse:</strong> Open auth.log and process it line by line. Each line passes through <code>parse_log_line()</code>. Lines that aren't auth events return <code>None</code> and are skipped. Lines that are events return a dict. The output of this phase is a list of structured dicts — no raw strings, no file handles, just clean data.</p>
+    <p style="margin-top:12px;"><strong>Phase 2 — Analyze:</strong> The parsed events feed into Counter. You extract just the failed IP addresses, pass the list to <code>Counter()</code>, and call <code>.most_common()</code>. The output is a ranked list: heaviest hitters at the top, lightest at the bottom. This is where the intelligence lives — patterns that were invisible in raw log lines become obvious in a sorted frequency table.</p>
+    <p style="margin-top:12px;"><strong>Phase 3 — Report:</strong> Iterate over the Counter results, apply the threshold (3+ failures = flagged), and format the output. A good report includes the scan window, total event counts, the threshold used, and the list of flagged IPs with their failure counts and severity. The report should be machine-readable enough that you could pipe it to another tool or save it to a file.</p>
+    <p style="margin-top:12px; color:var(--text-dim); font-size:0.85em;">Run the phases in order. Notice how each phase's output is the next phase's input — that's the pipeline pattern. The phases are also independently testable: you can test the parser without a real log file, and you can test the Counter logic without running the parser.</p>
   </div>
 
   <div class="panel">
@@ -763,7 +813,9 @@ MISSION_RENDERERS[6] = function() {
   <div class="panel">
     <div class="panel-accent"></div>
     <div class="panel-title">Mission 06 — Final Check: Week 6 Debrief</div>
-    <p>Confirm each item is complete in your Week 6 log analyzer script. Click each checkbox when done. All six must be confirmed to complete the week.</p>
+    <p>You built a real security tool this week. Not a tutorial script — a functional log analyzer that reads raw authentication data and produces a ranked threat report. The skills behind it — parsing structured text, frequency analysis with Counter, threshold-based detection — are the same skills used in production SIEM tools, IDS systems, and security automation pipelines.</p>
+    <p style="margin-top:12px;">The most important thing you practiced this week is not Python syntax. It's the discipline of separating concerns: the parser knows nothing about files, the Counter knows nothing about log format, the report knows nothing about how the data was collected. Each piece is independently testable, independently replaceable. That modularity is what makes a security tool maintainable when the log format changes next year, or when you need to adapt it for a different system.</p>
+    <p style="margin-top:12px; color:var(--text-dim); font-size:0.85em;">Confirm each item is complete before marking the week done. If any item is not yet done, go back and complete it — the checklist reflects the actual deliverables, not just what you learned.</p>
     ${items}
     <div id="final-count" style="color:var(--text-dim); font-size:0.8em; margin-top:12px; letter-spacing:1px;">0 / ${FINAL_TOTAL} confirmed</div>
     <div id="m6-status" class="gate-status" style="margin-top:12px;"></div>
