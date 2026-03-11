@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OPERATION: LAUNCH — CVNP2646 Week 16</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="crt-overlay"></div>
+
+  <header id="site-header">
+    <div class="header-inner">
+      <div class="terminal-badge">CVNP2646 // WEEK 16 // FINAL PORTFOLIO</div>
+      <h1 id="site-title">OPERATION: LAUNCH</h1>
+      <p id="site-subtitle">Your mission: Package your capstone as a professional portfolio artifact. Finalize the repository, record the demo video, complete your AI usage log, and write a technical reflection that sounds like an engineer.</p>
+      <div id="global-progress">
+        <div id="progress-bar-fill"></div>
+        <span id="progress-label">0 / 7 MISSIONS COMPLETE</span>
+      </div>
+    </div>
+  </header>
+
+  <nav id="mission-map" aria-label="Mission navigation"></nav>
+
+  <div id="briefing-panel" class="hidden">
+    <div class="briefing-inner">
+      <span class="briefing-label">▶ COMMANDER ZHANG //</span>
+      <span id="briefing-text"></span>
+      <span class="cursor-blink">█</span>
+    </div>
+  </div>
+
+  <main id="mission-content"></main>
+
+  <script src="app.js"></script>
+</body>
+</html>
